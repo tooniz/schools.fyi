@@ -1,0 +1,2 @@
+import { ContributionForm } from "@/components/ContributionForm";
+export default function Contribute(){return <main className="narrow"><p className="eyebrow">Community review queue</p><h1>Suggest a correction</h1><p>Submit only material supported by a public source. Your proposal opens a prefilled GitHub issue; it is not published automatically. Reviewers check citations, conflicts, scope, and freshness.</p><ContributionForm/></main>}
