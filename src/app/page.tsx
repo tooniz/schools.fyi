@@ -1,6 +1,15 @@
-import { Comparison } from "@/components/Comparison";
-import { alignmentLevels, alignmentSources, comparisonEntities } from "@data/curriculums/alignment";
+import { LevelingMatrix } from "@/components/LevelingMatrix";
+import { levelingDataset } from "@data/leveling";
 
 export default function Page() {
-  return <main><div className="hero"><p className="eyebrow">Curriculum explorer</p><h1>See how learning paths line up</h1><p>Compare schools and curricula on a shared Ontario-relative scale, with the source and reasoning behind every placement.</p></div><Comparison entities={comparisonEntities} levels={alignmentLevels} sources={alignmentSources} /></main>;
+  return (
+    <main>
+      <div className="hero">
+        <p className="eyebrow">Curriculum leveling</p>
+        <h1>Grade labels lie. Compare the actual level.</h1>
+        <p>Toronto independent schools and the Ontario curriculum, lined up by how far through the learning sequence each level sits — so you can see where an accelerated Grade 5 really lands. Every placement shows its claim, confidence, and sources.</p>
+      </div>
+      <LevelingMatrix dataset={levelingDataset} />
+    </main>
+  );
 }
