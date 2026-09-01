@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Compare Ontario, AP, IB and independent-school math and language pathways." />
+    <title>Schools.fyi — curriculum paths, made comparable</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="data.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#">schools<span>.fyi</span></a>
+      <nav aria-label="Primary navigation">
+        <a href="#compare">Compare</a><a href="#directory">Directory</a><a href="#methodology">Methodology</a>
+      </nav>
+      <a class="contribute" href="CONTRIBUTING.md">Contribute ↗</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="eyebrow">CANADIAN CURRICULUM INTELLIGENCE</p>
+        <h1>See how learning<br /><em>paths line up.</em></h1>
+        <p class="lede">Compare math and language pathways across public standards, international programs, and leading independent schools.</p>
+        <a class="primary-button" href="#compare">Start comparing <span>→</span></a>
+        <div class="stats" aria-label="Site coverage">
+          <div><strong id="provider-count">12</strong><span>providers</span></div>
+          <div><strong>JK–12</strong><span>grade range</span></div>
+          <div><strong>2</strong><span>core subjects</span></div>
+          <div><strong>100%</strong><span>source-linked</span></div>
+        </div>
+      </section>
+
+      <section class="compare-section" id="compare">
+        <div class="section-heading">
+          <div><p class="eyebrow">CURRICULUM EXPLORER</p><h2>Compare learning paths</h2></div>
+          <p>Select a subject and grade, then add up to four curriculums or schools.</p>
+        </div>
+
+        <div class="controls" aria-label="Comparison controls">
+          <fieldset><legend>Subject</legend><div class="segmented" id="subject-control"></div></fieldset>
+          <fieldset><legend>Grade</legend><select id="grade-control" aria-label="Choose grade"></select></fieldset>
+          <button class="ghost-button" id="copy-link" type="button">Copy view link</button>
+        </div>
+
+        <div class="provider-browser">
+          <div class="browser-header">
+            <div class="tabs" role="tablist" aria-label="Provider type">
+              <button role="tab" aria-selected="true" data-tab="curriculum">Curriculums <span id="curriculum-count"></span></button>
+              <button role="tab" aria-selected="false" data-tab="school">Schools <span id="school-count"></span></button>
+            </div>
+            <label class="search"><span aria-hidden="true">⌕</span><input id="provider-search" type="search" placeholder="Search providers" /></label>
+          </div>
+          <div id="provider-list" class="provider-list"></div>
+        </div>
+
+        <div class="selection-title"><div><p class="eyebrow">YOUR COMPARISON</p><h3 id="comparison-title"></h3></div><button id="clear-button" type="button">Reset defaults</button></div>
+        <div id="comparison-grid" class="comparison-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="directory" class="directory-section">
+        <p class="eyebrow">HOW PROVIDERS ARE ORGANIZED</p><h2>Clear categories.<br />Honest comparisons.</h2>
+        <div class="type-grid">
+          <article><span class="type-icon curriculum-icon">◇</span><p class="eyebrow">CURRICULUMS</p><h3>Standards & programs</h3><p>Ontario, AP, IB, and supplemental programs are canonical learning frameworks—not schools.</p></article>
+          <article><span class="type-icon school-icon">⌂</span><p class="eyebrow">SCHOOLS</p><h3>Local implementation</h3><p>Bayview Glen and other independent schools show how learning is delivered in a particular community.</p></article>
+          <article><span class="type-icon mapping-icon">≈</span><p class="eyebrow">MAPPINGS</p><h3>Similar, not equivalent</h3><p>Grade alignments are editorial guides. Native program names remain visible whenever systems differ.</p></article>
+        </div>
+      </section>
+
+      <section id="methodology" class="methodology">
+        <div><p class="eyebrow">BUILT FOR TRUST</p><h2>Sources before scores.</h2></div>
+        <div><p>Every summary links to the provider's published material. We distinguish requirements, program descriptions, and school-specific delivery.</p><p class="note">Schools.fyi is an independent reference and is not affiliated with or endorsed by any provider shown.</p></div>
+      </section>
+    </main>
+    <footer><a class="brand" href="#">schools<span>.fyi</span></a><p>Learning paths, made legible.</p><p>Open data · Community reviewed</p></footer>
+  </body>
+</html>
