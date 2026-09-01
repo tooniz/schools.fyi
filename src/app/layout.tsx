@@ -1,0 +1,3 @@
+import type { Metadata } from "next";import Link from "next/link";import "./globals.css";
+export const metadata:Metadata={title:"schools.fyi — curriculum comparison",description:"Source-aware Ontario curriculum comparisons"};
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body><header className="site-header"><Link href="/" className="brand">schools.fyi</Link><nav aria-label="Primary"><Link href="/contribute">Contribute</Link></nav></header>{children}<footer><strong>Independent resource.</strong> This site is not affiliated with or endorsed by any listed school or program. No school logos are used. <Link href="/contribute">Report a correction</Link>.</footer></body></html>}
