@@ -14,26 +14,56 @@ export type School = z.infer<typeof SchoolSchema>;
 export const CurriculumExpectationSchema = z.object({id:z.string().min(1),schoolId:z.string(),subject:SubjectSchema,grade:GradeLevelSchema,strand:z.string().min(1),sourceText:z.string().min(1),comparisonLabel:z.string().min(1),expectation:z.string().min(1),sequence:z.number().int().nonnegative(),sourceId:z.string(),sourceLocator:z.string().min(1),verificationStatus:z.enum(["verified","not-publicly-documented","pending-review"]),lastReviewed:z.iso.date(),qualificationNotes:z.string().optional()});
 export type CurriculumExpectation = z.infer<typeof CurriculumExpectationSchema>;
 
-export const ComparisonEntitySchema = z.object({
+export const levelingSubjects = ["mathematics", "language", "french"] as const;
+export const LevelingSubjectSchema = z.enum(levelingSubjects);
+export type LevelingSubject = z.infer<typeof LevelingSubjectSchema>;
+
+export const evidenceKinds = ["official-curriculum", "school-published", "school-course-calendar", "community-thread", "secondary-directory"] as const;
+export const EvidenceSchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(evidenceKinds),
+  publisher: z.string().min(1),
+  title: z.string().min(1),
+  canonicalUrl: z.url(),
+  accessDate: z.iso.date(),
+  platform: z.string().min(1).optional(),
+  quote: z.string().min(1).optional(),
+  corroboration: z.enum(["single-anecdote", "several-voices", "not-applicable"]).optional(),
+});
+export type Evidence = z.infer<typeof EvidenceSchema>;
+export const isCommunityEvidence = (evidence: Evidence) => evidence.kind === "community-thread";
+
+export const ProgramSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
   name: z.string().min(1),
   shortName: z.string().min(1),
-  category: z.enum(["school", "curriculum"]),
+  kind: z.enum(["public-curriculum", "independent-school", "international-framework"]),
+  location: z.string().min(1),
+  url: z.url(),
   descriptor: z.string().min(1),
   methodology: z.string().min(1),
-  sourceIds: z.array(z.string()).min(1),
+  gradeLabels: z.array(z.string().min(1).nullable()).length(gradeLevels.length),
+  evidenceIds: z.array(z.string()).min(1),
 });
-export type ComparisonEntity = z.infer<typeof ComparisonEntitySchema>;
+export type Program = z.infer<typeof ProgramSchema>;
 
-export const AlignmentLevelSchema = z.object({
+export const confidenceTiers = ["documented", "approximate", "community-reported", "insufficient-evidence"] as const;
+export const ConfidenceTierSchema = z.enum(confidenceTiers);
+export type ConfidenceTier = z.infer<typeof ConfidenceTierSchema>;
+
+export const OffsetRuleSchema = z.object({
   id: z.string().min(1),
-  entityId: z.string().min(1),
-  label: z.string().min(1),
-  detail: z.string().min(1),
-  ontarioStart: z.number().min(0).max(14),
-  ontarioEnd: z.number().min(0).max(14),
-  confidence: z.enum(["direct", "approximate", "contextual"]),
+  programId: z.string().min(1),
+  subject: LevelingSubjectSchema,
+  fromGradeIndex: z.number().int().min(0).max(gradeLevels.length - 1),
+  toGradeIndex: z.number().int().min(0).max(gradeLevels.length - 1),
+  coverage: z.enum(["taught", "not-offered"]),
+  offsetYears: z.number().min(-3).max(4),
+  spanYears: z.number().min(0.25).max(4),
+  confidence: ConfidenceTierSchema,
+  claim: z.string().min(1),
   rationale: z.string().min(1),
-  sourceId: z.string().min(1),
+  acceleratedPathway: z.string().min(1).optional(),
+  evidenceIds: z.array(z.string()).min(1),
 });
-export type AlignmentLevel = z.infer<typeof AlignmentLevelSchema>;
+export type OffsetRule = z.infer<typeof OffsetRuleSchema>;
