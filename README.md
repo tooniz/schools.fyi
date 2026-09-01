@@ -1,19 +1,30 @@
 # schools.fyi
 
-A minimal, independent, source-aware comparison of Ontario learning progressions. Next.js App Router pages consume a `CurriculumRepository`; the current file-backed implementation can later be replaced by PostgreSQL/Supabase without changing UI component contracts.
+A dependency-free, source-linked explorer for comparing Ontario math and language learning paths across curriculums and independent schools.
 
-## Development and checks
+## Run locally
 
-Requires Node 20.9+. Run `npm install`, then `npm run dev`. Quality gates are `npm run validate:data`, `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build`.
+No install or build is required:
 
-## Data workflow
+```bash
+python3 -m http.server 4173
+```
 
-Reviewed data lives under `data/<provider>/<subject>.ts`, not in components. Add a canonical `Source`, a registry `School`, and expectations with separate source wording and normalized labels. Every published expectation requires a source; the validator rejects unknown references and duplicate school/subject/grade/strand keys. Follow `CONTRIBUTING.md`, verify primary sources, record access/review dates, run all gates, and request editorial review. Registry-only schools stay hidden until a subject-grade source is reviewed.
+Open <http://localhost:4173>. Data lives in `data.js`; the interface is plain HTML, CSS, and JavaScript so it can be hosted on any static file service.
+
+## Information architecture
+
+- **Curriculums** are canonical standards or programs: Ontario, AP, IB, and Kumon.
+- **Schools** are individual institutions and describe local delivery: Bayview Glen, TFS, Havergal, UCC, and others.
+- Provider-native terms stay visible because an AP course, IB programme, Kumon level, and Ontario grade are not automatically equivalent.
+- Ontario, Kumon Canada, and Bayview Glen are the default comparison requested for the initial release.
+
+## Contributing data
+
+Each provider requires an official source URL, a provider type, grade or age range, and separate Math and Language summaries. Keep summaries factual and short. Use `Not publicly documented` rather than inferring details, and describe cross-system mappings as approximate.
+
+The data is deliberately isolated from rendering code so it can later move to reviewed JSON submissions or an API without rebuilding the interface.
 
 ## Deployment
 
-Import the repository into Vercel and use the standard Next.js preset (`npm run build`); no environment variables or database are required. For optional static hosting run `STATIC_EXPORT=true npm run build` and deploy `out/`. The contribution form intentionally links to a GitHub review queue and should be updated if the repository moves.
-
-## Scope and limitations
-
-The seed columns are Ontario, Kumon Canada, and Bayview Glen. Kumon is ability-based rather than grade-equivalent, and Bayview Glen public pages do not provide expectation-level detail for every grade; unavailable detail is explicitly labeled rather than inferred. Alignments are editorial aids, not accreditation, placement advice, or formal equivalencies.
+GitHub Pages deployment is defined in `.github/workflows/pages.yml`. In repository settings, set **Pages → Source** to **GitHub Actions**. Every push to `main` publishes the static site as an artifact.

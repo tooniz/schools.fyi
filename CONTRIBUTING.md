@@ -1,7 +1,15 @@
-# Contributing curriculum evidence
+# Contributing to schools.fyi
 
-All changes enter review; submissions are never published automatically. Cite an official ministry, program, or school page and preserve the publisher's wording in `sourceText` separately from the concise comparison label. Reviewers verify that the locator supports the claim, classify the source, run validation, and approve before merge. Marketing copy must not be converted into an expectation.
+Thanks for helping make curriculum information easier to understand.
 
-Disclose employment, enrollment, consulting, or other relationships with a provider. Reviewers with a material conflict should recuse themselves. Conflicting sources remain visible in review; prefer the newest primary source and document the decision rather than silently reconciling claims. Re-check records annually and mark inaccessible, superseded, or unconfirmed material as pending or “Not publicly documented.” Corrections use the same evidence and approval requirements.
+For a curriculum or school update, open a repository issue with:
 
-To add a school, create its provider registry record, source records, and separate subject modules under `data/<provider>/`; set `reviewed: true` only after at least one subject-grade record has passed review. Never add logos without documented permission.
+1. the provider and whether it is a **curriculum** or **school**;
+2. the affected subject and grade, course, programme, or native level;
+3. the proposed summary or correction;
+4. an official, public source URL; and
+5. the date you reviewed that source.
+
+Canonical curriculum claims need an official publisher source. School offering and implementation claims need a source published by that school. A school marketing statement must not be converted into a detailed curriculum claim, and an approximate grade mapping must be labeled as such.
+
+Reviewed changes can be made in `data.js`. Please keep summaries concise, preserve provider-native terminology, and use “Not publicly documented” when the available source does not support a claim.
