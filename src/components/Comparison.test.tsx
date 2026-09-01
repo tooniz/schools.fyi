@@ -1,5 +1,29 @@
-import {cleanup,render,screen} from "@testing-library/react";import userEvent from "@testing-library/user-event";import {afterEach,describe,it,expect} from "vitest";import {Comparison} from "./Comparison";import {expectations,schools,sources} from "@data/schools";
-afterEach(()=>{cleanup();history.replaceState(null,"","/")});
-describe("Comparison",()=>{it("supports keyboard details, subject and school selection, and source navigation",async()=>{const user=userEvent.setup();render(<Comparison schools={schools} expectations={expectations} sources={sources}/>);const details=screen.getAllByRole("button",{name:"View details"})[0];details.focus();await user.keyboard("{Enter}");expect(details).toHaveAttribute("aria-expanded","true");expect(screen.getByRole("link",{name:/Curriculum and Resources/})).toHaveAttribute("href",expect.stringContaining("dcp.edu.gov.on.ca"));await user.selectOptions(screen.getByLabelText("Subject"),"language");expect(screen.getByText(/Grade 1 · Language/)).toBeInTheDocument();await user.click(screen.getByLabelText("Bayview Glen"));expect(screen.queryByRole("heading",{name:"Bayview Glen"})).not.toBeInTheDocument()})});
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it } from "vitest";
+import { alignmentLevels, alignmentSources, comparisonEntities } from "@data/curriculums/alignment";
+import { Comparison } from "./Comparison";
 
-describe("grade map",()=>{it("renders the full JK-to-Grade-12 stack and preserves whitespace for unsupported grades",async()=>{const user=userEvent.setup();render(<Comparison schools={schools} expectations={expectations} sources={sources}/>);expect(screen.getByRole("button",{name:"Ontario, JK"})).toBeInTheDocument();expect(screen.getByRole("button",{name:"Ontario, Grade 12"})).toBeInTheDocument();expect(screen.queryByRole("button",{name:"Bayview Glen, Grade 12"})).not.toBeInTheDocument();await user.click(screen.getByRole("button",{name:"Ontario, Grade 12"}));expect(screen.getByRole("heading",{name:"Grade 12 · Mathematics"})).toBeInTheDocument();expect(screen.getByText("No reviewed math expectation is available for this grade.")).toBeInTheDocument()})});
+afterEach(() => { cleanup(); history.replaceState(null, "", "/"); });
+
+describe("Comparison", () => {
+  it("groups schools and curricula and opens source-backed level details", async () => {
+    const user = userEvent.setup();
+    render(<Comparison entities={comparisonEntities} levels={alignmentLevels} sources={alignmentSources} />);
+    expect(screen.getByRole("group", { name: "Schools" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Curriculums" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Bayview Glen")).toBeChecked();
+    await user.click(screen.getByRole("button", { name: /AP courses/ }));
+    expect(screen.getByRole("dialog", { name: "AP: AP courses" })).toHaveTextContent("not a K–12 curriculum or grade ladder");
+    expect(screen.getByRole("link", { name: /What Is AP/ })).toHaveAttribute("href", "https://apstudents.collegeboard.org/what-is-ap");
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("renders variable spans and removes the selected-grade section", () => {
+    render(<Comparison entities={comparisonEntities} levels={alignmentLevels} sources={alignmentSources} />);
+    expect(screen.getByRole("button", { name: /Primary Years Programme/ }).parentElement).toHaveStyle("--span: 7.5");
+    expect(screen.getByRole("button", { name: /AP courses/ }).parentElement).toHaveStyle("--span: 4");
+    expect(screen.queryByText("Selected level")).not.toBeInTheDocument();
+  });
+});

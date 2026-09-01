@@ -13,3 +13,27 @@ export const SchoolSchema = z.object({id:z.string().regex(/^[a-z0-9-]+$/),name:z
 export type School = z.infer<typeof SchoolSchema>;
 export const CurriculumExpectationSchema = z.object({id:z.string().min(1),schoolId:z.string(),subject:SubjectSchema,grade:GradeLevelSchema,strand:z.string().min(1),sourceText:z.string().min(1),comparisonLabel:z.string().min(1),expectation:z.string().min(1),sequence:z.number().int().nonnegative(),sourceId:z.string(),sourceLocator:z.string().min(1),verificationStatus:z.enum(["verified","not-publicly-documented","pending-review"]),lastReviewed:z.iso.date(),qualificationNotes:z.string().optional()});
 export type CurriculumExpectation = z.infer<typeof CurriculumExpectationSchema>;
+
+export const ComparisonEntitySchema = z.object({
+  id: z.string().regex(/^[a-z0-9-]+$/),
+  name: z.string().min(1),
+  shortName: z.string().min(1),
+  category: z.enum(["school", "curriculum"]),
+  descriptor: z.string().min(1),
+  methodology: z.string().min(1),
+  sourceIds: z.array(z.string()).min(1),
+});
+export type ComparisonEntity = z.infer<typeof ComparisonEntitySchema>;
+
+export const AlignmentLevelSchema = z.object({
+  id: z.string().min(1),
+  entityId: z.string().min(1),
+  label: z.string().min(1),
+  detail: z.string().min(1),
+  ontarioStart: z.number().min(0).max(14),
+  ontarioEnd: z.number().min(0).max(14),
+  confidence: z.enum(["direct", "approximate", "contextual"]),
+  rationale: z.string().min(1),
+  sourceId: z.string().min(1),
+});
+export type AlignmentLevel = z.infer<typeof AlignmentLevelSchema>;
