@@ -12,7 +12,9 @@ Reviewed data lives under `data/<provider>/<subject>.ts`, not in components. Add
 
 ## Deployment
 
-Import the repository into Vercel and use the standard Next.js preset (`npm run build`); no environment variables or database are required. For optional static hosting run `STATIC_EXPORT=true npm run build` and deploy `out/`. The contribution form intentionally links to a GitHub review queue and should be updated if the repository moves.
+Pushes to `main` deploy a static export to the default GitHub Pages project URL. In the repository's **Settings → Pages**, select **GitHub Actions** as the source. The deployment workflow supplies GitHub's project base path, builds the site, and publishes `out/`; no environment variables or database are required.
+
+To reproduce the Pages build locally, run `STATIC_EXPORT=true NEXT_PUBLIC_BASE_PATH=/schools.fyi npm run build` and serve `out/`. The contribution form intentionally links to a GitHub review queue and should be updated if the repository moves.
 
 ## Scope and limitations
 
