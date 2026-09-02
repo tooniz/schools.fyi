@@ -3,6 +3,15 @@ import { ACCESSED } from "./evidence";
 
 export const bayviewGlenEvidence: Evidence[] = [
   {
+    id: "bvg-ap-program",
+    kind: "school-published",
+    publisher: "Bayview Glen",
+    title: "Advanced Placement — Upper School",
+    canonicalUrl: "https://www.bayviewglen.ca/schools/upper-school/advanced-placement/",
+    accessDate: ACCESSED,
+    quote: "The Advanced Placement (AP) programme is an opportunity to achieve credit or placement in university level courses while enrolled in high school. It is geared for any student who is highly motivated, goal-oriented, independent, or who demonstrates exceptional talent or ability in a specific subject area.",
+  },
+  {
     id: "bvg-prep-grade7",
     kind: "school-course-calendar",
     publisher: "Bayview Glen",
@@ -78,6 +87,15 @@ export const bayviewGlenEvidence: Evidence[] = [
 
 export const havergalEvidence: Evidence[] = [
   {
+    id: "havergal-ap-courses",
+    kind: "school-published",
+    publisher: "Havergal College",
+    title: "Grade 12 Overview",
+    canonicalUrl: "https://www.havergal.on.ca/school/senior-school/grade-12-overview/",
+    accessDate: ACCESSED,
+    quote: "The school offers timetabled Advanced Placement (AP) courses in some subjects. These are Grade 12 University Preparation Courses, which also provide the extra content needed to prepare students to write AP exams. Students in AP courses will earn the related Grade 12 University Preparation course credit.",
+  },
+  {
     id: "havergal-faq",
     kind: "school-published",
     publisher: "Havergal College",
@@ -152,6 +170,15 @@ export const havergalEvidence: Evidence[] = [
 ];
 
 export const bishopStrachanEvidence: Evidence[] = [
+  {
+    id: "bss-ap-program",
+    kind: "school-published",
+    publisher: "The Bishop Strachan School",
+    title: "Advanced Placement — Senior School",
+    canonicalUrl: "https://www.bss.on.ca/academics/middle-and-senior-school/advanced-placement",
+    accessDate: ACCESSED,
+    quote: "For decades, BSS has offered internationally recognized Advanced Placement courses. Our students participate in these rigorous university-level courses to build confidence in their learning skills, tap into their creativity and build academic competency. […] BSS also offers the AP Capstone Diploma. The Capstone Diploma courses develop students' skills in research, analysis, evidence-based arguments, collaboration, writing and presenting.",
+  },
   {
     id: "bss-steam",
     kind: "school-published",
@@ -323,13 +350,22 @@ export const utsEvidence: Evidence[] = [
     quote: "Nomenclature for School Years at UTS: Foundation I (F1) = Grade 7; Foundation II (F2) = Grade 8; Middle III (M3) = Grade 9; Middle IV (M4) = Grade 10; Senior V (S5) = Grade 11; Senior VI (S6) = Grade 12. […] Mathematics: MATF1 | MPM1DE | MPM2DA or MPM2DB | MCR3UA or MCR3UB | MHF4UE or MHF4UP | MCV4UE or MCV4UP; MDM4UE. […] English: ENGF1 | ENGF2 | ENG1DE | ENG2DE | ENG3UE | ENG4UE or ENG4UP. […] Credits are granted for courses offered under Ministry guidelines for Grade 9 to 12 courses only. These courses will usually be offered beginning in M3, although students will complete some secondary credit courses prior to entering M3. […] The Languages Department offers a two-tier French program: Core and Special. […] students enrolled in the Special Program earn the Grade 12 credit (FSF 4US) in S5. […] Individual fast tracking and early course specialization are not compatible with our philosophy.",
   },
   {
+    id: "uts-calendar-science",
+    kind: "school-course-calendar",
+    publisher: "University of Toronto Schools",
+    title: "UTS Course Calendar 2015–2016 — science pages",
+    canonicalUrl: "https://www.yumpu.com/en/document/read/48815545/course-calendar-university-of-toronto-schools/57",
+    accessDate: ACCESSED,
+    quote: "GENERAL SCIENCE Foundation I SNC F1 - Science […] Middle IV or Senior V SBI 3UE - Biology Pre-requisite: SNC 2D",
+  },
+  {
     id: "uts-ap-program",
     kind: "school-published",
     publisher: "University of Toronto Schools",
     title: "AP Program",
     canonicalUrl: "https://www.utschools.ca/the-uts-difference/academics/ap-program",
     accessDate: ACCESSED,
-    quote: "At UTS, students take ten courses instead of eight each year, the typical number in Ontario high schools. The UTS science and math program is accelerated throughout the Foundation and Middle years. This allows students to spread out their AP courses over their two senior years, rather than completing all of their STEM AP courses in one year. […] UTS students who take two to three AP courses in each of their S5 and S6 (Grade 11 and 12) years tend to gain the most from the AP Program. […] AP Courses Offered at UTS: Biology, Calculus AB, Chemistry, […] English Language and Composition, English Literature and Composition, French Language and Culture, […] Statistics.",
+    quote: "At UTS, students take ten courses instead of eight each year, the typical number in Ontario high schools. The UTS science and math program is accelerated throughout the Foundation and Middle years. This allows students to spread out their AP courses over their two senior years, rather than completing all of their STEM AP courses in one year. This allows students to spread out their AP courses over their two senior years, rather than completing all of their STEM AP courses in one year. […] UTS students who take two to three AP courses in each of their S5 and S6 (Grade 11 and 12) years tend to gain the most from the AP Program. […] AP Courses Offered at UTS: Biology, Calculus AB, Chemistry, […] English Language and Composition, English Literature and Composition, French Language and Culture, […] Statistics.",
   },
 ];
 
