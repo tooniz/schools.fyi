@@ -10,7 +10,7 @@ import { bandLabel, countQuestions, openQuestions, programGradeLabel } from "./q
 import { isWeakPlacement, reportPath, settlingAsk } from "./report";
 import { gradeLevels } from "./schema";
 import type { OffsetRule, Program } from "./schema";
-import { DEFAULT_PROGRAMS, parseState, serializeState } from "./url-state";
+import { DEFAULT_PROGRAMS, addProgram, parseState, serializeState } from "./url-state";
 
 const gradeLabels = ["JK", "SK", ...Array.from({ length: 12 }, (_, index) => `Grade ${index + 1}`)];
 const program = (id: string): Program => ({
@@ -36,9 +36,16 @@ describe("comparison domain", () => {
       subject: "french" as const,
       programs: ["ontario", "tfs"],
       pathways: { ontario: "french-immersion" },
+      pinned: ["ontario"],
       outcomes: true,
     };
     expect(parseState(new URLSearchParams(serializeState(value)), ["ontario", "tfs"])).toEqual(value);
+  });
+
+  it("evicts the oldest unpinned track and refuses to evict when all five are pinned", () => {
+    const current = ["a", "b", "c", "d", "e"];
+    expect(addProgram(current, "f", ["a", "c"])).toEqual(["a", "c", "d", "e", "f"]);
+    expect(addProgram(current, "f", current)).toBe(current);
   });
 });
 
@@ -604,7 +611,7 @@ describe("science subject", () => {
 });
 
 describe("newly added programs", () => {
-  const added = ["branksome", "ucc", "crescent", "st-michaels", "appleby", "tms", "kumon", "york-school", "spirit-of-math", "singapore-math"];
+  const added = ["branksome", "ucc", "crescent", "st-michaels", "appleby", "tms", "kumon", "york-school", "spirit-of-math", "singapore-math", "british-columbia", "england", "common-core"];
 
   it("registers every one of them with a resolvable set of sources", () => {
     for (const id of added) {
@@ -649,5 +656,70 @@ describe("newly added programs", () => {
     expect(at("language", 9).offsetYears).toBe(0);
     expect(at("science", 9).offsetYears).toBe(0);
     expect(at("language", 9).confidence).toBe("documented");
+  });
+});
+
+describe("public curriculum crosswalks", () => {
+  const at = (programId: string, subject: OffsetRule["subject"], gradeIndex: number) =>
+    levelingDataset.rules.find(
+      (entry) =>
+        entry.programId === programId &&
+        entry.subject === subject &&
+        entry.fromGradeIndex <= gradeIndex &&
+        entry.toGradeIndex >= gradeIndex,
+    )!;
+
+  it("age-normalizes native grade labels without pretending one-year Kindergarten systems have JK", () => {
+    const bc = levelingDataset.programs.find(({ id }) => id === "british-columbia")!;
+    const england = levelingDataset.programs.find(({ id }) => id === "england")!;
+    const commonCore = levelingDataset.programs.find(({ id }) => id === "common-core")!;
+
+    expect(bc.gradeLabels.slice(0, 3)).toEqual([null, "Kindergarten", "Grade 1"]);
+    expect(commonCore.gradeLabels.slice(0, 3)).toEqual([null, "Kindergarten", "Grade 1"]);
+    expect(england.gradeLabels.slice(0, 3)).toEqual(["Reception", "Year 1", "Year 2"]);
+    expect(england.gradeLabels.slice(-3)).toEqual(["Year 11", null, null]);
+  });
+
+  it("keeps BC whole-subject differences at zero while showing its later Core French start", () => {
+    for (const subject of ["mathematics", "language", "science"] as const) {
+      expect(levelingDataset.rules.filter((entry) => entry.programId === "british-columbia" && entry.subject === subject).every(({ offsetYears }) => offsetYears === 0)).toBe(true);
+    }
+    expect(at("british-columbia", "french", 5).coverage).toBe("not-offered");
+    expect(at("british-columbia", "french", 6).offsetYears).toBe(-1);
+  });
+
+  it("places England primary mathematics and science ahead without extending the National Curriculum into post-16 years", () => {
+    expect(at("england", "mathematics", 1).offsetYears).toBe(1);
+    expect(at("england", "mathematics", 10).offsetYears).toBe(0);
+    expect(at("england", "science", 2).offsetYears).toBe(1);
+    expect(levelingDataset.rules.filter((entry) => entry.programId === "england" && entry.subject === "language").every(({ offsetYears }) => offsetYears === 0)).toBe(true);
+    expect(levelingDataset.programs.find(({ id }) => id === "england")?.gradeLabels[12]).toBeNull();
+  });
+
+  it("uses CCSS for mathematics and language and NGSS for science in one curriculum column", () => {
+    expect(at("common-core", "mathematics", 2).offsetYears).toBe(0);
+    expect(at("common-core", "mathematics", 3).offsetYears).toBe(1);
+    expect(at("common-core", "science", 6).offsetYears).toBe(1);
+    expect(at("common-core", "science", 10).offsetYears).toBe(0);
+    expect(levelingDataset.rules.filter((entry) => entry.programId === "common-core" && entry.subject === "language").every(({ offsetYears }) => offsetYears === 0)).toBe(true);
+  });
+
+  it("distinguishes a curriculum scope boundary from an unfinished placement", () => {
+    for (const id of ["england", "common-core"]) {
+      const program = levelingDataset.programs.find((entry) => entry.id === id)!;
+      const column = buildLeveling(levelingDataset, "french", [id])[0];
+      expect(program.subjectNotes?.french).toBeTruthy();
+      expect(column.unresearched).toBe(true);
+      expect(column.cells).toEqual([]);
+    }
+  });
+
+  it("rejects a scope note that contradicts shipped rules", () => {
+    const noted = { ...program("noted"), subjectNotes: { mathematics: "Outside this test program." } };
+    expect(() => validateLeveling({
+      programs: [noted],
+      evidence,
+      rules: [rule({ id: "r1", programId: "noted" })],
+    })).toThrow(/both mathematics rules and a subject scope note/);
   });
 });

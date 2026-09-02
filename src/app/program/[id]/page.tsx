@@ -113,13 +113,18 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
         <h2>Placements by subject</h2>
         {levelingSubjects.map((subject) => {
           const subjectRules = rules.filter((rule) => rule.subject === subject);
+          const subjectNote = program.subjectNotes?.[subject];
           return (
             <div className="subject-block" key={subject}>
               <h3>{subjectLabels[subject]}</h3>
               {subjectRules.length === 0 ? (
                 <p className="program-gap">
-                  Not researched yet. This is a gap in our data, not a statement about the school.{" "}
-                  <Link href={reportPath({ program: program.id, subject, ask: `Please add a ${subjectLabels[subject].toLowerCase()} placement for ${program.name}.` })}>Send us a source</Link>.
+                  {subjectNote ?? (
+                    <>
+                      Not researched yet. This is a gap in our data, not a statement about the school.{" "}
+                      <Link href={reportPath({ program: program.id, subject, ask: `Please add a ${subjectLabels[subject].toLowerCase()} placement for ${program.name}.` })}>Send us a source</Link>.
+                    </>
+                  )}
                 </p>
               ) : (
                 <ul className="placement-list">

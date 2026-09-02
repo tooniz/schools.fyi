@@ -92,7 +92,7 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
   const search = useSyncExternalStore(subscribeToHistory, () => location.search, () => "");
   const fromUrl = useMemo(() => parseState(new URLSearchParams(search), programIds), [search, programIds]);
   const [override, setOverride] = useState<LevelingState | null>(null);
-  const { subject, programs: selected, pathways = {}, outcomes = false } = override ?? fromUrl;
+  const { subject, programs: selected, pathways = {}, pinned = [], outcomes = false } = override ?? fromUrl;
   const [open, setOpen] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ left: number; top: number } | null>(null);
   const activeCell = useRef<HTMLButtonElement | null>(null);
@@ -108,6 +108,7 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
     subject,
     programs: selected,
     ...(Object.keys(pathways).length ? { pathways } : {}),
+    ...(pinned.length ? { pinned } : {}),
     ...(outcomes ? { outcomes: true } : {}),
   };
 
@@ -234,12 +235,31 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
         <ProgramPicker
           programs={dataset.programs}
           selected={selected}
-          onAdd={(id) => update({ ...currentState, programs: addProgram(selected, id) })}
+          pinned={pinned}
+          onAdd={(id) => {
+            const nextPrograms = addProgram(selected, id, pinned);
+            if (nextPrograms === selected) return;
+            const retained = new Set(nextPrograms);
+            const nextPathways = Object.fromEntries(Object.entries(pathways).filter(([programId]) => retained.has(programId)));
+            const nextPinned = pinned.filter((programId) => retained.has(programId));
+            update({
+              ...currentState,
+              programs: nextPrograms,
+              ...(Object.keys(nextPathways).length ? { pathways: nextPathways } : { pathways: undefined }),
+              ...(nextPinned.length ? { pinned: nextPinned } : { pinned: undefined }),
+            });
+          }}
           onRemove={(id) => {
             if (selected.length <= 1) return;
             const nextPathways = { ...pathways };
+            const nextPinned = pinned.filter((programId) => programId !== id);
             delete nextPathways[id];
-            update({ ...currentState, programs: selected.filter((value) => value !== id), ...(Object.keys(nextPathways).length ? { pathways: nextPathways } : { pathways: undefined }) });
+            update({
+              ...currentState,
+              programs: selected.filter((value) => value !== id),
+              ...(Object.keys(nextPathways).length ? { pathways: nextPathways } : { pathways: undefined }),
+              ...(nextPinned.length ? { pinned: nextPinned } : { pinned: undefined }),
+            });
           }}
         />
       </div>
@@ -277,9 +297,26 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
             {columns.map(({ program, cells, headlineOffset, unresearched, pathway }) => {
               const choices = pathwaysFor(program, subject);
               const fallback = defaultPathway(program, subject);
+              const subjectNote = program.subjectNotes?.[subject];
+              const isPinned = pinned.includes(program.id);
               return (
               <article className="matrix-column" key={program.id} aria-label={program.displayName} data-kind={program.kind} data-framework={program.framework} data-scope={program.frameworkScope}>
                 <header>
+                  <button
+                    className="pin-toggle"
+                    type="button"
+                    aria-label={`${isPinned ? "Unpin" : "Pin"} ${program.displayName}`}
+                    aria-pressed={isPinned}
+                    title={isPinned ? `Unpin ${program.displayName}` : `Pin ${program.displayName} so additions keep it`}
+                    onClick={() => {
+                      const nextPinned = isPinned
+                        ? pinned.filter((programId) => programId !== program.id)
+                        : [...pinned, program.id];
+                      update({ ...currentState, ...(nextPinned.length ? { pinned: nextPinned } : { pinned: undefined }) });
+                    }}
+                  >
+                    <span aria-hidden="true">📌</span>
+                  </button>
                   <span>{kindLabels[program.kind]}<FrameworkTag framework={program.framework} scope={program.frameworkScope} /></span>
                   <strong><Link href={`/program/${program.id}`}>{program.displayName}</Link><AdmitsGlyph admits={program.admits} /></strong>
                   <small>{program.descriptor}</small>
@@ -300,7 +337,7 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
                       </select>
                     </label>
                   )}
-                  <em data-ahead={headlineOffset > 0}>{unresearched ? "not researched yet" : headline(headlineOffset, cells)}</em>
+                  <em data-ahead={headlineOffset > 0}>{unresearched ? (subjectNote ? "outside this curriculum" : "not researched yet") : headline(headlineOffset, cells)}</em>
                 </header>
                 <div className="matrix-track" style={{ "--total": totalHeight } as React.CSSProperties}>
                   {rows.map((row) => (
@@ -308,9 +345,15 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
                   ))}
                   {unresearched && (
                     <p className="track-unresearched">
-                      No {subjectLabels[subject].toLowerCase()} placement for {program.abbreviation} yet.
-                      This is a gap in our research, not in the school.
-                      <Link href={reportPath({ program: program.id, subject, ask: `Please add a ${subjectLabels[subject].toLowerCase()} placement for ${program.name}. A curriculum page, course calendar, or scope-and-sequence document would be enough to start.` })}>Send us a source</Link>
+                      {subjectNote ? (
+                        subjectNote
+                      ) : (
+                        <>
+                          No {subjectLabels[subject].toLowerCase()} placement for {program.abbreviation} yet.
+                          This is a gap in our research, not in the school.
+                          <Link href={reportPath({ program: program.id, subject, ask: `Please add a ${subjectLabels[subject].toLowerCase()} placement for ${program.name}. A curriculum page, course calendar, or scope-and-sequence document would be enough to start.` })}>Send us a source</Link>
+                        </>
+                      )}
                     </p>
                   )}
                   {voids(cells, totalHeight, program.abbreviation).map((gap) => (
