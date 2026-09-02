@@ -10,6 +10,10 @@ const column = (name: string) => screen.getByRole("article", { name });
 const cell = (program: string, name: RegExp) => within(column(program)).getByRole("button", { name });
 const varOf = (element: HTMLElement, name: string) => element.style.getPropertyValue(name);
 const tracks = () => within(screen.getByRole("list", { name: "Programs being compared" })).getAllByRole("listitem").map((item) => item.textContent ?? "");
+const renderPrograms = (programs: string[], subject = "mathematics") => {
+  history.replaceState(null, "", `/?subject=${subject}&programs=${programs.join(",")}`);
+  return render(<LevelingMatrix dataset={levelingDataset} />);
+};
 
 describe("LevelingMatrix", () => {
   it("offers a subject switcher and a track per selected program", () => {
@@ -29,14 +33,14 @@ describe("LevelingMatrix", () => {
   });
 
   it("places an accelerated level on the Ontario row it actually matches", () => {
-    render(<LevelingMatrix dataset={levelingDataset} />);
+    renderPrograms(["ontario", "tfs"]);
     const tfsLevelOne = cell("Toronto French School", /Level I\b/);
     expect(varOf(tfsLevelOne, "--top")).toBe(varOf(cell("Ontario Curriculum", /^Grade 9$/), "--top"));
     expect(within(tfsLevelOne).getByText("+1 yr")).toBeInTheDocument();
   });
 
   it("draws TFS's compressed middle years taller than one Ontario row", () => {
-    render(<LevelingMatrix dataset={levelingDataset} />);
+    renderPrograms(["ontario", "tfs"]);
     const compressed = cell("Toronto French School", /^Grade 6/);
     expect(Number(varOf(compressed, "--height"))).toBeGreaterThan(Number(varOf(cell("Ontario Curriculum", /^Grade 6$/), "--height")));
     expect(within(compressed).getByText("1.5× pace")).toBeInTheDocument();
@@ -71,11 +75,22 @@ describe("LevelingMatrix", () => {
 
   it("shows Ontario teaching no French before Grade 4", async () => {
     const user = userEvent.setup();
-    render(<LevelingMatrix dataset={levelingDataset} />);
+    renderPrograms(["ontario", "bishop-strachan"]);
     await user.click(screen.getByRole("tab", { name: "French" }));
     expect(cell("Ontario Curriculum", /^Grade 1\s*not taught$/)).toBeInTheDocument();
     expect(cell("Ontario Curriculum", /^Grade 4$/)).toBeInTheDocument();
     expect(cell("Bishop Strachan School", /^JK$/)).toBeInTheDocument();
+  });
+
+  it("switches Ontario from Core French to French Immersion inside one column", async () => {
+    const user = userEvent.setup();
+    render(<LevelingMatrix dataset={levelingDataset} />);
+    await user.click(screen.getByRole("tab", { name: "French" }));
+    expect(cell("Ontario Curriculum", /^Grade 1\s*not taught$/)).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Ontario Curriculum pathway" }), "french-immersion");
+    const grade1 = cell("Ontario Curriculum", /^Grade 1\b/);
+    expect(within(grade1).getByText("+3 yrs · advanced")).toBeInTheDocument();
+    expect(location.search).toContain("french-immersion");
   });
 
   it("opens a cell dialog above the scrolling matrix, with sources split by type", async () => {
@@ -86,6 +101,9 @@ describe("LevelingMatrix", () => {
     expect(dialog.closest(".matrix-scroll")).toBeNull();
     expect(dialog).toHaveTextContent("Sits at Ontario Grade 6");
     expect(dialog).toHaveTextContent("a full grade ahead of Ontario");
+    expect(dialog).toHaveTextContent("Content timing");
+    expect(dialog).toHaveTextContent("Depth not separately assessed");
+    expect(dialog).toHaveTextContent("Pace not separately assessed");
     expect(within(dialog).getByText("Official and school sources")).toBeInTheDocument();
     expect(within(dialog).getByRole("link", { name: /Prep School Curriculum, Grade 7/ })).toHaveAttribute("href", "https://www.bayviewglen.ca/wp-content/uploads/2022/09/BVG_PS_Curriculum_Grade7_2022-2023_Final_Sep9_spreads.pdf");
     await user.keyboard("{Escape}");
@@ -94,7 +112,7 @@ describe("LevelingMatrix", () => {
 
   it("shows TFS teaching no English before Grade 2 rather than leaving a blank gap", async () => {
     const user = userEvent.setup();
-    render(<LevelingMatrix dataset={levelingDataset} />);
+    renderPrograms(["ontario", "tfs"]);
     await user.click(screen.getByRole("tab", { name: "English / Language" }));
     const grade1 = cell("Toronto French School", /^Grade 1\s*not taught$/);
     await user.click(grade1);
@@ -115,12 +133,23 @@ describe("LevelingMatrix", () => {
 
   it("keeps an opt-in stream out of the cohort level but names it in the detail", async () => {
     const user = userEvent.setup();
-    render(<LevelingMatrix dataset={levelingDataset} />);
+    renderPrograms(["ontario", "bishop-strachan"]);
     await user.click(cell("Bishop Strachan School", /^Grade 8/));
     const dialog = screen.getByRole("dialog", { name: "Bishop Strachan School: Grade 8" });
     expect(dialog).toHaveTextContent("Sits at Ontario Grade 8");
     expect(dialog).toHaveTextContent("Faster route available");
     expect(dialog).toHaveTextContent("25% of Grade 8 students");
+  });
+
+  it("reveals non-ranked outcomes context and explains why EQAO is absent", async () => {
+    const user = userEvent.setup();
+    render(<LevelingMatrix dataset={levelingDataset} />);
+    await user.click(screen.getByRole("button", { name: "Show outcomes" }));
+    expect(screen.getByRole("heading", { name: "Latest official post-secondary disclosures" })).toBeInTheDocument();
+    expect(screen.getByText("Canada")).toBeInTheDocument();
+    expect(screen.getByText("71%")).toBeInTheDocument();
+    expect(screen.getByText(/Why EQAO is absent/)).toBeInTheDocument();
+    expect(location.search).toContain("outcomes=university");
   });
 });
 
@@ -145,8 +174,8 @@ describe("program picker", () => {
     render(<LevelingMatrix dataset={levelingDataset} />);
     await openPicker(user);
     expect(screen.getByRole("button", { name: "Add International Baccalaureate" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Add Toronto French School" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Remove Toronto French School" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Branksome Hall" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove Branksome Hall" })).not.toBeInTheDocument();
   });
 
   it("filters the offered programs by search", async () => {
@@ -158,9 +187,22 @@ describe("program picker", () => {
     expect(screen.queryByRole("button", { name: "Add Advanced Placement" })).not.toBeInTheDocument();
   });
 
-  it("removes a track from its chip and keeps the URL in step", async () => {
+  it("offers York School and switches its mathematics pathway in-column", async () => {
     const user = userEvent.setup();
     render(<LevelingMatrix dataset={levelingDataset} />);
+    await openPicker(user);
+    await user.type(screen.getByRole("searchbox", { name: "Search programs" }), "York School");
+    await user.click(screen.getByRole("button", { name: "Add The York School" }));
+    const york = column("The York School");
+    const grade8 = within(york).getByRole("button", { name: /^Grade 8 · MYP/ });
+    expect(within(grade8).queryByText("+1 yr")).not.toBeInTheDocument();
+    await user.selectOptions(within(york).getByRole("combobox", { name: "The York School pathway" }), "accelerated-math");
+    expect(within(within(york).getByRole("button", { name: /^Grade 8 · MYP/ })).getByText(/\+1 yr/)).toBeInTheDocument();
+  });
+
+  it("removes a track from its chip and keeps the URL in step", async () => {
+    const user = userEvent.setup();
+    renderPrograms(["ontario", "tfs", "ucc"]);
     await user.click(screen.getByRole("tab", { name: "English / Language" }));
     expect(location.search).toContain("subject=language");
     await user.click(screen.getByRole("button", { name: "Remove Toronto French School from the comparison" }));

@@ -523,6 +523,8 @@ export const tfsOffsets: OffsetRule[] = [
 /** UTS runs Grades 7–12, so indices 0–7 carry no rule at all. */
 const UTS_GRADE_7 = 8;
 const UTS_GRADE_8 = 9;
+const UTS_GRADE_9 = 10;
+const UTS_GRADE_10 = 11;
 const UTS_GRADE_11 = 12;
 const UTS_GRADE_12 = 13;
 
@@ -599,6 +601,50 @@ export const utsOffsets: OffsetRule[] = [
     rationale: "UTS teaches Core French, not immersion or extended French, required in Grades 7 to 9 and optional to Grade 12 — the Ontario shape. It runs two tiers, and only the Special Program is ahead, so the cohort level stays at the Ontario position and the faster tier is recorded as a route rather than averaged in.",
     acceleratedPathway: "Students in the Special French Program earn the Grade 12 credit, FSF4US, in Grade 11. AP French Language and Culture is also offered.",
     evidenceIds: ["uts-course-calendar", "uts-academics", "on-fsl"],
+  },
+  {
+    id: "uts-science-foundation",
+    programId: "uts",
+    subject: "science",
+    fromGradeIndex: UTS_GRADE_7,
+    toGradeIndex: UTS_GRADE_8,
+    coverage: "taught",
+    offsetYears: 0.5,
+    spanYears: 1,
+    confidence: "documented",
+    claim: "Science is accelerated from the first UTS year, but the school never says by how much.",
+    rationale: "UTS names science, by itself and by name, twice: \"The UTS science and math program is accelerated throughout the Foundation and Middle years\", and \"Our accelerated curriculum in Grade 7 gives students the opportunity to study multiple higher level science courses without limiting course options in other subject areas.\" That is stronger than what the school says about English, which it never claims to accelerate, because it is subject-specific and whole-cohort. What it is not is quantified. The only published Foundation science course is SNC F1, a UTS-internal code with no Ontario grade number, so no lead can be read off it. Half a grade is the floor this site applies when a school claims acceleration in a named subject without saying how far, and the confidence is documented for the fact of acceleration, not for its size. The ten-course timetable in Grades 7 to 9 against Ontario's eight is what buys the room.",
+    evidenceIds: ["uts-ap-program", "uts-academics", "uts-calendar-science", "on-science-elementary"],
+  },
+  {
+    id: "uts-science-middle",
+    programId: "uts",
+    subject: "science",
+    fromGradeIndex: UTS_GRADE_9,
+    toGradeIndex: UTS_GRADE_10,
+    coverage: "taught",
+    offsetYears: 1,
+    spanYears: 1,
+    confidence: "documented",
+    claim: "By the Middle years science is a clear year ahead: an Ontario Grade 11 science course is scheduled in UTS Grade 10.",
+    rationale: "This is where science stops resting on the school's own adjectives. The course calendar lists SBI 3UE — Ontario Grade 11 Biology — as \"Middle IV or Senior V\", and Middle IV is Grade 10. Its stated prerequisite is SNC 2D, the Ontario Grade 10 science credit, so for that placement to be schedulable at all, SNC 2D must be finished by Grade 9. That is a full year, established from course codes rather than from marketing language, and it is the same pattern and the same document that puts UTS mathematics a year up across these grades. Two honest limits. \"Middle IV or Senior V\" means the Grade 10 placement is a route some students take rather than a course the whole cohort sits, which is why this is the ceiling of what the evidence supports. And the calendar is from 2015–16; the current site still describes science as accelerated through the Middle years but publishes no course codes, so a current UTS course calendar is the one document that would settle whether the sequence is cohort-wide.",
+    acceleratedPathway: "SBI 3UE, the Ontario Grade 11 biology course, is available in Middle IV (Grade 10) as well as Senior V (Grade 11).",
+    evidenceIds: ["uts-calendar-science", "uts-ap-program", "uts-academics", "on-science-secondary", "on-science-grade9"],
+  },
+  {
+    id: "uts-science-senior",
+    programId: "uts",
+    subject: "science",
+    fromGradeIndex: UTS_GRADE_11,
+    toGradeIndex: UTS_GRADE_12,
+    coverage: "taught",
+    offsetYears: 0,
+    spanYears: 1,
+    confidence: "documented",
+    claim: "The senior years spend the lead on breadth instead of finishing early, so science converges back onto the Ontario grade.",
+    rationale: "UTS bounds its own claim: acceleration runs \"throughout the Foundation and Middle years\", and stops being asserted after that. The school then says what the year gained is for — \"This allows students to spread out their AP courses over their two senior years, rather than completing all of their STEM AP courses in one year\" — and offers AP Biology, AP Chemistry and AP Physics 1 across Senior V and VI. Grade 11 and 12 students are taking Ontario 3U and 4U science courses at their nominal grades, so the offset returns to zero. That convergence is the finding, not a failure of it, and it is exactly what UTS mathematics does in Grade 12 for the same reason.",
+    acceleratedPathway: "AP Biology, AP Chemistry and AP Physics 1 are offered in the senior years; UTS advises two to three AP courses in each of Senior V and Senior VI.",
+    evidenceIds: ["uts-ap-program", "uts-academics", "on-science-secondary", "on-ossd-science"],
   },
 ];
 

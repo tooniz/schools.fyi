@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { Program } from "@/lib/schema";
+import { kindLabels, type Program } from "@/lib/schema";
 import { MAX_PROGRAMS } from "@/lib/url-state";
+import { AdmitsGlyph } from "./AdmitsGlyph";
+import { FrameworkTag, frameworkLabel } from "./FrameworkTag";
 
-export const KIND_LABELS: Record<Program["kind"], string> = {
-  "public-curriculum": "Public curriculum",
-  "independent-school": "Independent school",
-  "international-framework": "International framework",
-};
 
 interface Props {
   programs: Program[];
@@ -29,7 +26,10 @@ export function ProgramPicker({ programs, selected, onAdd, onRemove }: Props) {
     const available = programs.filter((program) => !selected.includes(program.id));
     const needle = query.trim().toLowerCase();
     if (!needle) return available;
-    return available.filter((program) => `${program.name} ${program.displayName} ${program.abbreviation} ${program.location} ${KIND_LABELS[program.kind]}`.toLowerCase().includes(needle));
+    return available.filter((program) => {
+      const framework = program.framework ? frameworkLabel(program.framework) : "";
+      return `${program.name} ${program.displayName} ${program.abbreviation} ${program.location} ${kindLabels[program.kind]} ${framework}`.toLowerCase().includes(needle);
+    });
   }, [programs, selected, query]);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function ProgramPicker({ programs, selected, onAdd, onRemove }: Props) {
           const program = byId.get(id);
           if (!program) return null;
           return (
-            <li key={id} data-kind={program.kind}>
+            <li key={id} data-kind={program.kind} data-framework={program.framework} data-scope={program.frameworkScope}>
               <span className="track-name">{program.abbreviation}</span>
               <button
                 type="button"
@@ -100,10 +100,10 @@ export function ProgramPicker({ programs, selected, onAdd, onRemove }: Props) {
               <ul>
                 {matches.map((program) => (
                   <li key={program.id}>
-                    <button type="button" data-kind={program.kind} aria-label={`Add ${program.displayName}`} onClick={() => onAdd(program.id)}>
-                      <span className="picker-name">{program.displayName}</span>
-                      <span className="picker-meta">{KIND_LABELS[program.kind]} · {program.location}</span>
-                      <span className="picker-state" aria-hidden="true">Add</span>
+                    <button type="button" data-kind={program.kind} data-framework={program.framework} data-scope={program.frameworkScope} aria-label={`Add ${program.displayName}`} onClick={() => onAdd(program.id)}>
+                      <span className="picker-name">{program.displayName}<AdmitsGlyph admits={program.admits} /></span>
+                      <FrameworkTag framework={program.framework} scope={program.frameworkScope} />
+                      <span className="picker-meta">{kindLabels[program.kind]} · {program.location}</span>
                     </button>
                   </li>
                 ))}

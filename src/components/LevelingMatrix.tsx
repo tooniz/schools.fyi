@@ -2,15 +2,26 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { AXIS_SIZE, buildLeveling, confidenceCopy, layoutMatrix, offsetLabel, ontarioEquivalent, ontarioGradeLabel, referenceTeaches } from "@/lib/leveling";
+import { AXIS_SIZE, buildLeveling, confidenceCopy, defaultPathway, layoutMatrix, offsetLabel, ontarioEquivalent, ontarioGradeLabel, pathwaysFor, referenceTeaches } from "@/lib/leveling";
 import type { LayoutCell, LevelingDataset } from "@/lib/leveling";
-import { isCommunityEvidence, levelingSubjects, type Evidence, type LevelingSubject } from "@/lib/schema";
+import { depthLabels, isCommunityEvidence, kindLabels, levelingSubjects, paceLabels, pathwayKindLabels, subjectLabels, type Evidence, type Program } from "@/lib/schema";
+import { STALE_AFTER_MONTHS, formatAccessDate, isStale } from "@/lib/freshness";
+import { isWeakPlacement, reportPath, settlingAsk } from "@/lib/report";
 import { addProgram, parseState, serializeState, type LevelingState } from "@/lib/url-state";
-import { KIND_LABELS, ProgramPicker } from "./ProgramPicker";
+import { AdmitsGlyph } from "./AdmitsGlyph";
+import { FrameworkTag } from "./FrameworkTag";
+import { OutcomesPanel } from "./OutcomesPanel";
+import { ProgramPicker } from "./ProgramPicker";
+import { ShareLink } from "./ShareLink";
 
-const SUBJECT_LABELS: Record<LevelingSubject, string> = { mathematics: "Mathematics", language: "English / Language", french: "French" };
 const POPOVER_WIDTH = 340;
 const GUTTER = 12;
+
+/** The reader's own view, so a reviewer can reopen exactly what they saw. */
+function comparisonLink(state: LevelingState) {
+  const query = serializeState(state);
+  return typeof location === "undefined" ? query : `${location.origin}${location.pathname}${query}`;
+}
 
 function subscribeToHistory(onChange: () => void) {
   window.addEventListener("popstate", onChange);
@@ -22,7 +33,17 @@ function subscribeToHistory(onChange: () => void) {
 function headline(headlineOffset: number, cells: LayoutCell[]) {
   if (headlineOffset > 0) return `up to ${offsetLabel(headlineOffset)} ahead`;
   const measured = cells.filter((cell) => !cell.notOffered && cell.confidence !== "insufficient-evidence");
-  return measured.length ? "level with Ontario" : "no documented offset";
+  return measured.length ? "content level with Ontario" : "no documented timing offset";
+}
+
+function cellBadge(cell: LayoutCell): string | null {
+  if (cell.notOffered) return "not taught";
+  const parts: string[] = [];
+  if (cell.offsetYears !== 0) parts.push(offsetLabel(cell.offsetYears));
+  else if (cell.spanYears !== 1) parts.push(`${cell.spanYears}× pace`);
+  if (cell.depth === "enriched" || cell.depth === "advanced") parts.push(cell.depth);
+  else if (!parts.length && cell.pace === "faster") parts.push("faster pace");
+  return parts.length ? parts.join(" · ") : null;
 }
 
 /** Blank stretches above and below a program's grade range, labelled so an empty
@@ -49,7 +70,12 @@ function EvidenceList({ items, title }: { items: Evidence[]; title: string }) {
         {items.map((item) => (
           <li key={item.id}>
             <a href={item.canonicalUrl} target="_blank" rel="noreferrer">{item.title}</a>
-            <span className="evidence-meta">{item.platform ?? item.publisher}{item.corroboration && item.corroboration !== "not-applicable" ? ` · ${item.corroboration.replace("-", " ")}` : ""}</span>
+            <span className="evidence-meta">
+              {item.platform ?? item.publisher}
+              {item.corroboration && item.corroboration !== "not-applicable" ? ` · ${item.corroboration.replace("-", " ")}` : ""}
+              {" · read "}{formatAccessDate(item.accessDate)}
+              {isStale(item.accessDate) && <em className="stale-flag" title={`Not re-checked in over ${STALE_AFTER_MONTHS} months`}>needs re-check</em>}
+            </span>
             {item.quote && <blockquote>{item.quote}</blockquote>}
           </li>
         ))}
@@ -66,7 +92,7 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
   const search = useSyncExternalStore(subscribeToHistory, () => location.search, () => "");
   const fromUrl = useMemo(() => parseState(new URLSearchParams(search), programIds), [search, programIds]);
   const [override, setOverride] = useState<LevelingState | null>(null);
-  const { subject, programs: selected } = override ?? fromUrl;
+  const { subject, programs: selected, pathways = {}, outcomes = false } = override ?? fromUrl;
   const [open, setOpen] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{ left: number; top: number } | null>(null);
   const activeCell = useRef<HTMLButtonElement | null>(null);
@@ -74,9 +100,16 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
   const evidenceMap = useMemo(() => new Map(dataset.evidence.map((item) => [item.id, item])), [dataset.evidence]);
 
   const { columns, rows, totalHeight } = useMemo(
-    () => layoutMatrix(buildLeveling(dataset, subject, selected)),
-    [dataset, subject, selected],
+    () => layoutMatrix(buildLeveling(dataset, subject, selected, pathways)),
+    [dataset, subject, selected, pathways],
   );
+
+  const currentState: LevelingState = {
+    subject,
+    programs: selected,
+    ...(Object.keys(pathways).length ? { pathways } : {}),
+    ...(outcomes ? { outcomes: true } : {}),
+  };
 
   const update = useCallback((next: LevelingState) => {
     setOverride(next);
@@ -134,31 +167,38 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
   }, [open]);
 
   const activeEntry = open
-    ? columns.flatMap((column) => column.cells.filter((item) => `${item.programId}-${item.gradeIndex}` === open).map((cell) => ({ cell, programName: column.program.displayName, kind: column.program.kind })))[0] ?? null
+    ? columns.flatMap((column) => column.cells.filter((item) => `${item.programId}-${item.gradeIndex}` === open).map((cell) => ({ cell, program: column.program })))[0] ?? null
     : null;
 
-  function detail(cell: LayoutCell, programName: string, kind: string) {
+  function detail(cell: LayoutCell, program: Program) {
+    const programName = program.displayName;
     const evidence = cell.rule.evidenceIds.map((id) => evidenceMap.get(id)).filter((item): item is Evidence => Boolean(item));
     const unmatched = !cell.notOffered && !referenceTeaches(dataset, subject, cell.progressStart);
+    const weak = isWeakPlacement(cell.confidence);
     return (
       <div
         className="level-popover"
         ref={popover}
         id={`cell-${cell.programId}-${cell.gradeIndex}`}
         role="dialog"
-        data-kind={kind}
+        data-kind={program.kind}
+        data-framework={program.framework} data-scope={program.frameworkScope}
         aria-label={`${programName}: ${cell.label}`}
         style={anchor ? { left: anchor.left, top: anchor.top } : undefined}
       >
         <button className="popover-close" aria-label="Close details" onClick={() => setOpen(null)}>×</button>
-        <p className="eyebrow">{cell.notOffered ? "not taught" : unmatched ? "no Ontario counterpart" : offsetLabel(cell.offsetYears)} · {cell.confidence.replace("-", " ")}</p>
+        <p className="eyebrow">{cell.notOffered ? "not taught" : unmatched ? "no Ontario counterpart" : `content timing ${offsetLabel(cell.offsetYears)}`} · {cell.confidence.replace("-", " ")}</p>
         <h3>{programName} {cell.label}</h3>
         <p className="popover-lede">{cell.notOffered
           ? <>This subject is <strong>not taught</strong> at this stage, so there is no level to compare.</>
           : unmatched
-            ? <>Ontario teaches no {SUBJECT_LABELS[subject].toLowerCase()} this early, so this level sits against an <strong>empty provincial column</strong> rather than ahead of one.</>
-            : <>Sits at Ontario <strong>{ontarioEquivalent(cell)}</strong> on the difficulty and progress scale{cell.spanYears !== 1 ? `, covering ${cell.spanYears} Ontario years in one` : ""}.</>}</p>
+            ? <>Ontario teaches no {subjectLabels[subject].toLowerCase()} this early, so this level sits against an <strong>empty provincial column</strong> rather than ahead of one.</>
+            : <>Sits at Ontario <strong>{ontarioEquivalent(cell)}</strong> on the content sequence{cell.spanYears !== 1 ? `, covering ${cell.spanYears} Ontario years in one level` : ""}. Depth and pace are scored separately below.</>}</p>
         <dl>
+          {!cell.notOffered && <><dt>Content timing</dt><dd>{offsetLabel(cell.offsetYears)} · aligned to {ontarioEquivalent(cell)}</dd></>}
+          {!cell.notOffered && <><dt>Depth</dt><dd>{depthLabels[cell.depth]}</dd></>}
+          {!cell.notOffered && <><dt>Pace</dt><dd>{paceLabels[cell.pace]}</dd></>}
+          {cell.pathwayId && <><dt>Pathway</dt><dd>{program.pathways?.find(({ id }) => id === cell.pathwayId)?.label ?? cell.pathwayId}</dd></>}
           <dt>Claim</dt><dd>{cell.rule.claim}</dd>
           <dt>Why it sits here</dt><dd>{cell.rule.rationale}</dd>
           <dt>Confidence</dt><dd>{confidenceCopy[cell.confidence]}</dd>
@@ -167,7 +207,18 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
         </dl>
         <EvidenceList title="Official and school sources" items={evidence.filter((item) => !isCommunityEvidence(item))} />
         <EvidenceList title="Community discussion" items={evidence.filter(isCommunityEvidence)} />
-        <Link href="/contribute">Report a correction</Link>
+        {weak && (
+          <p className="popover-ask">
+            <strong>Help us settle this.</strong> {settlingAsk(cell.confidence, programName, subjectLabels[subject], cell.label)}
+          </p>
+        )}
+        <Link href={reportPath({
+          program: cell.programId,
+          subject,
+          level: cell.label,
+          comparison: comparisonLink(currentState),
+          ask: weak ? settlingAsk(cell.confidence, programName, subjectLabels[subject], cell.label) : undefined,
+        })}>{weak ? "Send us the source" : "Report a correction"}</Link>
       </div>
     );
   }
@@ -177,23 +228,36 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
       <div className="leveling-toolbar">
         <div className="subject-tabs" role="tablist" aria-label="Subject">
           {levelingSubjects.map((value) => (
-            <button key={value} role="tab" aria-selected={subject === value} onClick={() => update({ subject: value, programs: selected })}>{SUBJECT_LABELS[value]}</button>
+            <button key={value} role="tab" aria-selected={subject === value} onClick={() => update({ ...currentState, subject: value })}>{subjectLabels[value]}</button>
           ))}
         </div>
         <ProgramPicker
           programs={dataset.programs}
           selected={selected}
-          onAdd={(id) => update({ subject, programs: addProgram(selected, id) })}
-          onRemove={(id) => selected.length > 1 && update({ subject, programs: selected.filter((value) => value !== id) })}
+          onAdd={(id) => update({ ...currentState, programs: addProgram(selected, id) })}
+          onRemove={(id) => {
+            if (selected.length <= 1) return;
+            const nextPathways = { ...pathways };
+            delete nextPathways[id];
+            update({ ...currentState, programs: selected.filter((value) => value !== id), ...(Object.keys(nextPathways).length ? { pathways: nextPathways } : { pathways: undefined }) });
+          }}
         />
       </div>
 
       <div className="leveling-heading">
         <div>
           <p className="eyebrow">Difficulty-aligned leveling</p>
-          <h2 id="leveling-title">{SUBJECT_LABELS[subject]} leveling</h2>
+          <h2 id="leveling-title">{subjectLabels[subject]} leveling</h2>
         </div>
-        <p>Rows are Ontario progress steps, not grade names. A level is placed by how far through the learning sequence it sits, so an accelerated Grade 5 can line up against Ontario Grade 6.</p>
+        <div className="heading-aside">
+          <p>Rows align content timing to Ontario; depth and pace stay separate.</p>
+          <div className="heading-actions">
+            <button className="outcomes-toggle" type="button" aria-pressed={outcomes} onClick={() => update({ ...currentState, outcomes: !outcomes })}>
+              {outcomes ? "Hide outcomes" : "Show outcomes"}
+            </button>
+            <ShareLink />
+          </div>
+        </div>
       </div>
 
       <div className="matrix-shell">
@@ -210,24 +274,52 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
         </aside>
         <div className="matrix-scroll">
           <div className="matrix-grid" style={{ "--column-count": columns.length } as React.CSSProperties}>
-            {columns.map(({ program, cells, headlineOffset }) => (
-              <article className="matrix-column" key={program.id} aria-label={program.displayName} data-kind={program.kind}>
+            {columns.map(({ program, cells, headlineOffset, unresearched, pathway }) => {
+              const choices = pathwaysFor(program, subject);
+              const fallback = defaultPathway(program, subject);
+              return (
+              <article className="matrix-column" key={program.id} aria-label={program.displayName} data-kind={program.kind} data-framework={program.framework} data-scope={program.frameworkScope}>
                 <header>
-                  <span>{KIND_LABELS[program.kind]}</span>
-                  <strong>{program.displayName}</strong>
+                  <span>{kindLabels[program.kind]}<FrameworkTag framework={program.framework} scope={program.frameworkScope} /></span>
+                  <strong><Link href={`/program/${program.id}`}>{program.displayName}</Link><AdmitsGlyph admits={program.admits} /></strong>
                   <small>{program.descriptor}</small>
-                  <em data-ahead={headlineOffset > 0}>{headline(headlineOffset, cells)}</em>
+                  {choices.length > 1 && (
+                    <label className="pathway-select">
+                      <span>Pathway</span>
+                      <select
+                        aria-label={`${program.displayName} pathway`}
+                        value={pathway?.id ?? fallback?.id ?? ""}
+                        onChange={(event) => {
+                          const nextPathways = { ...pathways };
+                          if (event.target.value === fallback?.id) delete nextPathways[program.id];
+                          else nextPathways[program.id] = event.target.value;
+                          update({ ...currentState, ...(Object.keys(nextPathways).length ? { pathways: nextPathways } : { pathways: undefined }) });
+                        }}
+                      >
+                        {choices.map((choice) => <option key={choice.id} value={choice.id}>{choice.label} · {pathwayKindLabels[choice.kind]}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  <em data-ahead={headlineOffset > 0}>{unresearched ? "not researched yet" : headline(headlineOffset, cells)}</em>
                 </header>
                 <div className="matrix-track" style={{ "--total": totalHeight } as React.CSSProperties}>
                   {rows.map((row) => (
                     <div className="track-row" key={row.index} data-beyond={row.beyond} style={{ "--top": row.top, "--height": row.height } as React.CSSProperties} />
                   ))}
+                  {unresearched && (
+                    <p className="track-unresearched">
+                      No {subjectLabels[subject].toLowerCase()} placement for {program.abbreviation} yet.
+                      This is a gap in our research, not in the school.
+                      <Link href={reportPath({ program: program.id, subject, ask: `Please add a ${subjectLabels[subject].toLowerCase()} placement for ${program.name}. A curriculum page, course calendar, or scope-and-sequence document would be enough to start.` })}>Send us a source</Link>
+                    </p>
+                  )}
                   {voids(cells, totalHeight, program.abbreviation).map((gap) => (
                     <p className="track-void" key={gap.edge} style={{ "--top": gap.top, "--height": gap.height } as React.CSSProperties}>{gap.label}</p>
                   ))}
                   {cells.map((cell) => {
                     const cellId = `${cell.programId}-${cell.gradeIndex}`;
                     const active = open === cellId;
+                    const badge = cellBadge(cell);
                     return (
                       <button
                         key={cellId}
@@ -241,34 +333,29 @@ export function LevelingMatrix({ dataset }: { dataset: LevelingDataset }) {
                         onClick={() => setOpen(active ? null : cellId)}
                       >
                         <strong>{cell.label}</strong>
-                        {cell.notOffered ? <span className="offset-badge">not taught</span> : cell.offsetYears !== 0 ? <span className="offset-badge">{offsetLabel(cell.offsetYears)}</span> : cell.spanYears !== 1 && <span className="offset-badge">{cell.spanYears}× pace</span>}
+                        {badge && <span className="offset-badge">{badge}</span>}
                       </button>
                     );
                   })}
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {activeEntry && <div className="popover-layer">{detail(activeEntry.cell, activeEntry.programName, activeEntry.kind)}</div>}
+      {activeEntry && <div className="popover-layer">{detail(activeEntry.cell, activeEntry.program)}</div>}
+
+      {outcomes && <OutcomesPanel programs={columns.map(({ program }) => program)} outcomes={dataset.outcomes} evidence={dataset.evidence} />}
 
       <div className="matrix-legend">
-        {(Object.keys(KIND_LABELS) as (keyof typeof KIND_LABELS)[]).map((kind) => (
-          <span className="kind-key" data-kind={kind} key={kind}>{KIND_LABELS[kind]}</span>
-        ))}
-      </div>
-
-      <div className="matrix-legend">
-        <span data-offset="level">Same pace as Ontario</span>
         <span data-offset="ahead">Ahead of Ontario</span>
         <span data-offset="behind">Behind Ontario</span>
         <span data-offset="absent">Subject not taught yet</span>
-        <span data-confidence="community-reported">Community-reported only</span>
       </div>
 
-      <p className="alignment-note"><strong>Methodology:</strong> Each level is placed on the Ontario progress axis using published curriculum structure, course sequencing, and typical student age, adjusted by any documented or community-reported pace difference. Where one program fits two levels into the same stretch of the axis, that stretch is drawn taller and every column across it grows to match. Select a cell for its claim, rationale, confidence, and sources. These are editorial comparisons — not accreditation, transfer-credit rulings, or placement advice.</p>
+      <p className="matrix-methodology"><strong>Methodology:</strong> Rows align content timing to Ontario; depth and pace are assessed separately. These are sourced editorial comparisons, not rankings or placement advice.</p>
     </section>
   );
 }

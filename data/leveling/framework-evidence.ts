@@ -119,4 +119,13 @@ export const frameworkEvidence: Evidence[] = [
     accessDate: ACCESSED,
     quote: "Transfer credit is awarded for Higher Level (HL) examinations where a final grade of at least 5 is achieved. No transfer credit is awarded for Standard Level (SL) examinations. […] Mathematics: analysis and approaches — MATA**H, MATA**H, 1.0 […] You have the equivalent of MATA30 and MATA36. […] English A: Language and Literature — ENGA**H, ENGA**H, 1.0 […] French B — FREA**Y, 1.0.",
   },
+  {
+    id: "utoronto-ib-hl-transfer-credit",
+    kind: "university-credit-policy",
+    publisher: "University of Toronto, Faculty of Arts & Science",
+    title: "Transfer Credit for International Baccalaureate (IB) Higher Level",
+    canonicalUrl: "https://www.artsci.utoronto.ca/current/faculty-registrar/transfer-credit/ib-higher-level",
+    accessDate: ACCESSED,
+    quote: "Transfer credit is awarded for Higher Level (HL) exams where a final grade of at least 5 is achieved. No transfer credit is awarded for Standard Level (SL) exams.",
+  },
 ];

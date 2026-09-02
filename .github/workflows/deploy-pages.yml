@@ -34,6 +34,10 @@ jobs:
         env:
           STATIC_EXPORT: "true"
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          # A repository variable, not a secret: NEXT_PUBLIC_ values are baked
+          # into the client bundle and are public by design. Unset is safe — the
+          # report form falls back to opening a prefilled GitHub issue.
+          NEXT_PUBLIC_REPORT_ENDPOINT: ${{ vars.NEXT_PUBLIC_REPORT_ENDPOINT }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
