@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { levelingDataset } from "@data/leveling";
 import { expectations } from "@data/schools";
 import { editorialAlignment, normalizeConcept } from "./comparison";
-import { buildLeveling, offsetLabel, ontarioEquivalent, ontarioGradeLabel, validateLeveling } from "./leveling";
+import { TRACK_ROWS, buildLeveling, layoutMatrix, offsetLabel, ontarioEquivalent, ontarioGradeLabel, validateLeveling } from "./leveling";
 import { gradeLevels } from "./schema";
 import type { OffsetRule, Program } from "./schema";
 import { DEFAULT_PROGRAMS, parseState, serializeState } from "./url-state";
 
 const gradeLabels = ["JK", "SK", ...Array.from({ length: 12 }, (_, index) => `Grade ${index + 1}`)];
 const program = (id: string): Program => ({
-  id, name: id, shortName: id, kind: "independent-school", location: "Toronto", url: "https://example.com",
+  id, name: id, displayName: id, abbreviation: id, kind: "independent-school", location: "Toronto", url: "https://example.com",
   descriptor: "Test program", methodology: "Test methodology", gradeLabels, evidenceIds: ["e1"],
 });
 const rule = (overrides: Partial<OffsetRule> & { id: string; programId: string }): OffsetRule => ({
@@ -119,22 +119,6 @@ describe("leveling axis", () => {
     const grade8 = column.cells.find((cell) => cell.gradeIndex === 9)!;
     const grade9 = column.cells.find((cell) => cell.gradeIndex === 10)!;
     expect(grade8.progressStart).toBe(grade9.progressStart);
-    expect([grade8.lane, grade9.lane]).toEqual([0, 1]);
-  });
-
-  it("moves a converging level into a second lane so both stay visible", () => {
-    const dataset = validateLeveling({
-      programs: [program("converging")],
-      evidence,
-      rules: [
-        rule({ id: "r1", programId: "converging", fromGradeIndex: 0, toGradeIndex: 9, offsetYears: 0.5 }),
-        rule({ id: "r2", programId: "converging", fromGradeIndex: 10, toGradeIndex: 13 }),
-      ],
-    });
-    const [column] = buildLeveling(dataset, "mathematics", ["converging"]);
-    expect(column.cells.find((cell) => cell.gradeIndex === 9)!.lane).toBe(0);
-    expect(column.cells.find((cell) => cell.gradeIndex === 10)!.lane).toBe(1);
-    expect(column.cells.find((cell) => cell.gradeIndex === 11)!.lane).toBe(0);
   });
 
   it("formats offsets for display", () => {
@@ -142,6 +126,144 @@ describe("leveling axis", () => {
     expect(offsetLabel(1)).toBe("+1 yr");
     expect(offsetLabel(0.5)).toBe("+0.5 yrs");
     expect(offsetLabel(-1)).toBe("−1 yr");
+  });
+});
+
+describe("matrix layout", () => {
+  const jump = validateLeveling({
+    programs: [program("ontario-like"), program("jumps")],
+    evidence,
+    rules: [
+      rule({ id: "base", programId: "ontario-like" }),
+      rule({ id: "j1", programId: "jumps", fromGradeIndex: 0, toGradeIndex: 0 }),
+      rule({ id: "j2", programId: "jumps", fromGradeIndex: 1, toGradeIndex: 13, offsetYears: 1 }),
+    ],
+  });
+
+  it("stretches a level back to close the gap its jump would leave", () => {
+    const { columns } = layoutMatrix(buildLeveling(jump, "mathematics", ["ontario-like", "jumps"]));
+    const [, accelerated] = columns;
+    const jk = accelerated.cells[0];
+    const sk = accelerated.cells[1];
+    expect(jk.stretched).toBe(false);
+    expect(sk.stretched).toBe(true);
+    expect(sk.top).toBeCloseTo(jk.top + jk.height);
+    expect(sk.height).toBeCloseTo(2 * jk.height);
+  });
+
+  it("keeps the stretched level's claim at its real position", () => {
+    const [, accelerated] = buildLeveling(jump, "mathematics", ["ontario-like", "jumps"]);
+    expect(ontarioEquivalent(accelerated.cells[1])).toBe("Grade 1");
+  });
+
+  it("gives a crowded stretch more height and grows every other column across it", () => {
+    const dataset = validateLeveling({
+      programs: [program("steady"), program("converged")],
+      evidence,
+      rules: [
+        rule({ id: "s1", programId: "steady" }),
+        rule({ id: "c1", programId: "converged", fromGradeIndex: 0, toGradeIndex: 9, offsetYears: 1 }),
+        rule({ id: "c2", programId: "converged", fromGradeIndex: 10, toGradeIndex: 13 }),
+      ],
+    });
+    const { columns, rows } = layoutMatrix(buildLeveling(dataset, "mathematics", ["steady", "converged"]));
+    const [steady, converged] = columns;
+    const grade8 = converged.cells.find((cell) => cell.gradeIndex === 9)!;
+    const grade9 = converged.cells.find((cell) => cell.gradeIndex === 10)!;
+    const partner = steady.cells.find((cell) => cell.gradeIndex === 10)!;
+
+    expect(grade9.top).toBeCloseTo(grade8.top + grade8.height);
+    expect(rows[10].height).toBe(2);
+    expect(partner.height).toBeCloseTo(grade8.height + grade9.height);
+    expect(partner.top).toBeCloseTo(grade8.top);
+  });
+
+  it("spends UTS's first year on two Ontario years, then holds a full grade of lead", () => {
+    const { columns } = layoutMatrix(buildLeveling(levelingDataset, "mathematics", ["ontario", "uts"]));
+    const uts = new Map(columns[1].cells.map((cell) => [cell.label, cell]));
+    expect(ontarioEquivalent(uts.get("Grade 7")!)).toBe("Grade 7–Grade 8");
+    expect(uts.get("Grade 8")!.offsetYears).toBe(1);
+    expect(ontarioEquivalent(uts.get("Grade 11")!)).toBe("Grade 12");
+    // The lead buys depth rather than an early finish, so the last two years land together.
+    expect(ontarioEquivalent(uts.get("Grade 12")!)).toBe("Grade 12");
+    expect(uts.get("Grade 12")!.top).toBeCloseTo(uts.get("Grade 11")!.top + uts.get("Grade 11")!.height);
+  });
+
+  it("keeps UTS English level with Ontario even though its maths runs ahead", () => {
+    const { columns } = layoutMatrix(buildLeveling(levelingDataset, "language", ["ontario", "uts"]));
+    for (const cell of columns[1].cells) {
+      expect(cell.offsetYears).toBe(0);
+      expect(cell.confidence).toBe("documented");
+    }
+  });
+
+  it("holds RHMS level with Ontario and stops it after Grade 8", () => {
+    const { columns } = layoutMatrix(buildLeveling(levelingDataset, "mathematics", ["ontario", "rhms"]));
+    const [ontario, rhms] = columns;
+    expect(rhms.cells.every((cell) => cell.offsetYears === 0)).toBe(true);
+    expect(rhms.cells[rhms.cells.length - 1].label).toBe("Grade 8");
+    for (const cell of rhms.cells) {
+      const counterpart = ontario.cells[cell.gradeIndex];
+      expect(cell.top).toBeCloseTo(counterpart.top);
+      expect(cell.height).toBeCloseTo(counterpart.height);
+    }
+  });
+
+  it("starts RHMS French in Grade 4, the same year Ontario does", () => {
+    const { columns } = layoutMatrix(buildLeveling(levelingDataset, "french", ["ontario", "rhms"]));
+    const [ontario, rhms] = columns;
+    const firstTaught = (cells: typeof ontario.cells) => cells.find((cell) => !cell.notOffered)?.gradeIndex;
+    expect(firstTaught(rhms.cells)).toBe(firstTaught(ontario.cells));
+    expect(ontarioGradeLabel(firstTaught(rhms.cells)!)).toBe("Grade 4");
+  });
+
+  it("only draws rows past Grade 12 when a level actually reaches them", () => {
+    const onPace = layoutMatrix(buildLeveling(levelingDataset, "mathematics", ["ontario", "rhms"]));
+    expect(onPace.rows.some((row) => row.beyond)).toBe(false);
+    const accelerated = layoutMatrix(buildLeveling(levelingDataset, "mathematics", ["ontario", "tfs"]));
+    expect(accelerated.rows.some((row) => row.beyond)).toBe(true);
+    expect(accelerated.rows.length).toBeLessThanOrEqual(TRACK_ROWS);
+  });
+
+  // Queen's maps AP Calculus BC and IB HL Mathematics to the same first-year
+  // course, AP and IB French to the same one, and refuses credit for both
+  // English routes. One registrar, one year, so neither framework may be shown
+  // leading the other on the strength of a single university's table.
+  it("finishes AP and IB level with each other, and holds English back in both", () => {
+    const senior = (subject: "mathematics" | "language" | "french", program: string) => {
+      const { columns } = layoutMatrix(buildLeveling(levelingDataset, subject, [program]));
+      const cells = columns[0].cells;
+      return cells[cells.length - 1].offsetYears;
+    };
+    for (const subject of ["mathematics", "language", "french"] as const) {
+      expect(senior(subject, "advanced-placement")).toBe(senior(subject, "international-baccalaureate"));
+    }
+    for (const program of ["advanced-placement", "international-baccalaureate"]) {
+      expect(senior("language", program)).toBeLessThan(senior("mathematics", program));
+      expect(senior("language", program)).toBeLessThan(senior("french", program));
+    }
+  });
+
+  it("never lets two levels of one program overlap", () => {
+    const { columns } = layoutMatrix(buildLeveling(levelingDataset, "mathematics", levelingDataset.programs.map(({ id }) => id)));
+    for (const column of columns) {
+      column.cells.reduce<number | null>((previousBottom, cell) => {
+        if (previousBottom !== null) expect(cell.top).toBeGreaterThanOrEqual(previousBottom - 1e-6);
+        return cell.top + cell.height;
+      }, null);
+    }
+  });
+
+  it("leaves no gap between consecutive levels of a program", () => {
+    for (const subject of ["mathematics", "language", "french"] as const) {
+      const { columns } = layoutMatrix(buildLeveling(levelingDataset, subject, levelingDataset.programs.map(({ id }) => id)));
+      for (const column of columns) {
+        column.cells.reduce<number | null>((previousBottom, cell) => {
+          if (previousBottom !== null) expect(cell.top).toBeCloseTo(previousBottom, 6);
+          return cell.top + cell.height;
+        }, null);
+      }
+    }
   });
 });
 
