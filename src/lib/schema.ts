@@ -18,7 +18,7 @@ export const levelingSubjects = ["mathematics", "language", "french"] as const;
 export const LevelingSubjectSchema = z.enum(levelingSubjects);
 export type LevelingSubject = z.infer<typeof LevelingSubjectSchema>;
 
-export const evidenceKinds = ["official-curriculum", "school-published", "school-course-calendar", "community-thread", "secondary-directory"] as const;
+export const evidenceKinds = ["official-curriculum", "school-published", "school-course-calendar", "university-credit-policy", "community-thread", "secondary-directory"] as const;
 export const EvidenceSchema = z.object({
   id: z.string().min(1),
   kind: z.enum(evidenceKinds),
@@ -35,8 +35,12 @@ export const isCommunityEvidence = (evidence: Evidence) => evidence.kind === "co
 
 export const ProgramSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
+  /** Formal name, used for search and attribution. */
   name: z.string().min(1),
-  shortName: z.string().min(1),
+  /** Column headers and the picker, where there is room to read. */
+  displayName: z.string().min(1),
+  /** Selected-track chips, where there is not. */
+  abbreviation: z.string().min(1),
   kind: z.enum(["public-curriculum", "independent-school", "international-framework"]),
   location: z.string().min(1),
   url: z.url(),
