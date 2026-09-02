@@ -14,6 +14,16 @@ export const ontarioEvidence: Evidence[] = [
     corroboration: "not-applicable",
   },
   {
+    id: "on-kindergarten-expectations",
+    kind: "official-curriculum",
+    publisher: "Ontario Ministry of Education",
+    title: "The Ontario Curriculum, Kindergarten, 2026 — JK/SK expectations",
+    canonicalUrl: "https://www.dcp.edu.gov.on.ca/en/curriculum/kindergarten/grades/jk-sk",
+    accessDate: "2026-09-02",
+    quote: "A2.4 identify simple grapheme-phoneme correspondences […] A6.8 count to 20 by 1s, starting from any number.",
+    corroboration: "not-applicable",
+  },
+  {
     id: "on-elementary-math",
     kind: "official-curriculum",
     publisher: "Ontario Ministry of Education",

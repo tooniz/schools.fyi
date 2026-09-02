@@ -38,7 +38,7 @@ export const ontarioProgram: Program = {
       subjects: ["french"],
     },
   ],
-  evidenceIds: ["on-kindergarten", "on-elementary-math", "on-elementary-language", "on-grade9-math", "on-fsl", "on-fsl-extended-immersion", "on-fsl-secondary-pathways", "on-fsl-same-subject-expectations", "on-fsl-immersion-core-crosswalk", "on-fsl-extended-core-crosswalk", "on-fsl-secondary-crosswalk", "on-ossd"],
+  evidenceIds: ["on-kindergarten", "on-kindergarten-expectations", "on-elementary-math", "on-elementary-language", "on-grade9-math", "on-fsl", "on-fsl-extended-immersion", "on-fsl-secondary-pathways", "on-fsl-same-subject-expectations", "on-fsl-immersion-core-crosswalk", "on-fsl-extended-core-crosswalk", "on-fsl-secondary-crosswalk", "on-ossd"],
 };
 
 /** AP and IB are overlays on a national curriculum, so they only exist from Grade 9. */

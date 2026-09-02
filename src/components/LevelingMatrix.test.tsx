@@ -151,6 +151,14 @@ describe("LevelingMatrix", () => {
     expect(screen.getByText(/Why EQAO is absent/)).toBeInTheDocument();
     expect(location.search).toContain("outcomes=university");
   });
+
+  it("explains when a subject falls outside a curriculum instead of calling it unresearched", () => {
+    renderPrograms(["ontario", "common-core"], "french");
+    const commonCore = column("Common Core + NGSS");
+    expect(within(commonCore).getByText("outside this curriculum")).toBeInTheDocument();
+    expect(within(commonCore).getByText(/do not define French-language standards/)).toBeInTheDocument();
+    expect(within(commonCore).queryByRole("link", { name: "Send us a source" })).not.toBeInTheDocument();
+  });
 });
 
 describe("program picker", () => {
@@ -169,6 +177,32 @@ describe("program picker", () => {
     expect(location.search).not.toContain("ontario");
   });
 
+  it("keeps pinned tracks and evicts the oldest unpinned track", async () => {
+    const user = userEvent.setup();
+    render(<LevelingMatrix dataset={levelingDataset} />);
+    await user.click(screen.getByRole("button", { name: "Pin Ontario Curriculum" }));
+    expect(screen.getByRole("button", { name: "Unpin Ontario Curriculum" })).toHaveAttribute("aria-pressed", "true");
+    expect(location.search).toContain("pinned=ontario");
+
+    await openPicker(user);
+    await user.click(screen.getByRole("button", { name: "Add International Baccalaureate" }));
+    const updated = tracks().join(" ");
+    expect(updated).toContain("Ontario");
+    expect(updated).not.toContain("BVG");
+    expect(updated).toContain("IB");
+  });
+
+  it("blocks FIFO additions when all five tracks are pinned", async () => {
+    const user = userEvent.setup();
+    render(<LevelingMatrix dataset={levelingDataset} />);
+    for (const name of ["Ontario Curriculum", "Bayview Glen", "Upper Canada College", "Havergal College", "Branksome Hall"]) {
+      await user.click(screen.getByRole("button", { name: `Pin ${name}` }));
+    }
+    await openPicker(user);
+    expect(screen.getByText("All five tracks are pinned. Unpin one to add another.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add International Baccalaureate" })).toBeDisabled();
+  });
+
   it("only offers programs that are not already being compared", async () => {
     const user = userEvent.setup();
     render(<LevelingMatrix dataset={levelingDataset} />);
@@ -178,6 +212,19 @@ describe("program picker", () => {
     expect(screen.queryByRole("button", { name: "Remove Branksome Hall" })).not.toBeInTheDocument();
   });
 
+  it("orders curricula, frameworks, schools, then enrichment programs", async () => {
+    const user = userEvent.setup();
+    render(<LevelingMatrix dataset={levelingDataset} />);
+    await openPicker(user);
+    const additions = screen.getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label"))
+      .filter((label): label is string => Boolean(label?.startsWith("Add ")) && label !== "Add program");
+    const position = (name: string) => additions.indexOf(`Add ${name}`);
+    expect(position("British Columbia Curriculum")).toBeLessThan(position("International Baccalaureate"));
+    expect(position("International Baccalaureate")).toBeLessThan(position("Bishop Strachan School"));
+    expect(position("Bishop Strachan School")).toBeLessThan(position("Kumon"));
+  });
+
   it("filters the offered programs by search", async () => {
     const user = userEvent.setup();
     render(<LevelingMatrix dataset={levelingDataset} />);
@@ -185,6 +232,15 @@ describe("program picker", () => {
     await user.type(screen.getByRole("searchbox", { name: "Search programs" }), "baccalaureate");
     expect(screen.getByRole("button", { name: "Add International Baccalaureate" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Advanced Placement" })).not.toBeInTheDocument();
+  });
+
+  it("offers the new public curriculum comparators", async () => {
+    const user = userEvent.setup();
+    render(<LevelingMatrix dataset={levelingDataset} />);
+    await openPicker(user);
+    for (const name of ["British Columbia Curriculum", "England Curriculum", "Common Core + NGSS"]) {
+      expect(screen.getByRole("button", { name: `Add ${name}` })).toBeInTheDocument();
+    }
   });
 
   it("offers York School and switches its mathematics pathway in-column", async () => {

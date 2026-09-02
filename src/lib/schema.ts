@@ -104,6 +104,9 @@ export const ProgramSchema = z.object({
   /** Sparse alternatives to the required/cohort rules. A selected pathway only
    * replaces the grade bands for which it publishes its own rules. */
   pathways: z.array(ProgramPathwaySchema).optional(),
+  /** Explains subjects the source framework does not define, as distinct from
+   * a research gap or a subject that a school explicitly does not teach. */
+  subjectNotes: z.partialRecord(LevelingSubjectSchema, z.string().min(1)).optional(),
   evidenceIds: z.array(z.string()).min(1),
 });
 export type Program = z.infer<typeof ProgramSchema>;

@@ -15,7 +15,7 @@ export const ontarioOffsets: OffsetRule[] = [
     pace: "on-standard",
     claim: "Ontario mathematics grades define the reference position on this scale.",
     rationale: "The provincial curriculum sets one set of expectations per grade from Grade 1 to Grade 8 and one compulsory de-streamed course in Grade 9, so each Ontario grade is fixed at its own progress step.",
-    evidenceIds: ["on-elementary-math", "on-grade9-math", "on-kindergarten"],
+    evidenceIds: ["on-elementary-math", "on-grade9-math", "on-kindergarten", "on-kindergarten-expectations"],
   },
   {
     id: "ontario-language-all",
@@ -31,7 +31,7 @@ export const ontarioOffsets: OffsetRule[] = [
     pace: "on-standard",
     claim: "Ontario language grades define the reference position on this scale.",
     rationale: "The Grades 1–8 Language curriculum and the four compulsory secondary English credits set one grade-level expectation per year, which anchors the axis.",
-    evidenceIds: ["on-elementary-language", "on-ossd", "on-kindergarten"],
+    evidenceIds: ["on-elementary-language", "on-ossd", "on-kindergarten", "on-kindergarten-expectations"],
   },
   {
     id: "ontario-french-early",

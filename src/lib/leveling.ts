@@ -117,6 +117,11 @@ export function validateLeveling(input: { programs: unknown[]; evidence: unknown
         if (label !== null && !claimed.has(index)) throw new Error(`${key} has no offset rule for grade index ${index}`);
       });
     }
+    for (const subject of Object.keys(program.subjectNotes ?? {})) {
+      if (rules.some((rule) => rule.programId === program.id && rule.subject === subject)) {
+        throw new Error(`Program ${program.id} has both ${subject} rules and a subject scope note`);
+      }
+    }
   }
 
   const outcomeIds = new Set<string>();

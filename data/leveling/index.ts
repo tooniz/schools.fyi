@@ -1,7 +1,10 @@
 import { validateLeveling } from "../../src/lib/leveling";
 import { applebyEvidence, applebyOffsets, applebyProgram } from "./appleby";
 import { branksomeEvidence, branksomeOffsets, branksomeProgram } from "./branksome";
+import { britishColumbiaEvidence, britishColumbiaOffsets, britishColumbiaProgram } from "./british-columbia";
+import { commonCoreEvidence, commonCoreOffsets, commonCoreProgram } from "./common-core";
 import { crescentEvidence, crescentOffsets, crescentProgram } from "./crescent";
+import { englandEvidence, englandOffsets, englandProgram } from "./england";
 import { ontarioEvidence } from "./evidence";
 import { frameworkEvidence } from "./framework-evidence";
 import { frameworkOffsets } from "./framework-offsets";
@@ -27,8 +30,8 @@ const gtaSchoolEvidence = [...branksomeEvidence, ...uccEvidence, ...crescentEvid
 const gtaSchoolOffsets = [...branksomeOffsets, ...uccOffsets, ...crescentOffsets, ...stMichaelsOffsets, ...applebyOffsets, ...lauremontOffsets];
 
 export const levelingDataset = validateLeveling({
-  programs: [ontarioProgram, ...schoolPrograms, ...gtaSchoolPrograms, yorkProgram, ...frameworkPrograms, kumonProgram, spiritOfMathProgram, singaporeMathProgram],
-  evidence: [...ontarioEvidence, ...schoolEvidence, ...gtaSchoolEvidence, ...yorkEvidence, ...frameworkEvidence, ...kumonEvidence, ...spiritOfMathEvidence, ...singaporeMathEvidence, ...outcomeEvidence],
-  rules: [...ontarioOffsets, ...schoolOffsets, ...gtaSchoolOffsets, ...yorkOffsets, ...frameworkOffsets, ...kumonOffsets, ...spiritOfMathOffsets, ...singaporeMathOffsets],
+  programs: [ontarioProgram, ...schoolPrograms, ...gtaSchoolPrograms, yorkProgram, ...frameworkPrograms, kumonProgram, spiritOfMathProgram, singaporeMathProgram, britishColumbiaProgram, englandProgram, commonCoreProgram],
+  evidence: [...ontarioEvidence, ...schoolEvidence, ...gtaSchoolEvidence, ...yorkEvidence, ...frameworkEvidence, ...kumonEvidence, ...spiritOfMathEvidence, ...singaporeMathEvidence, ...britishColumbiaEvidence, ...englandEvidence, ...commonCoreEvidence, ...outcomeEvidence],
+  rules: [...ontarioOffsets, ...schoolOffsets, ...gtaSchoolOffsets, ...yorkOffsets, ...frameworkOffsets, ...kumonOffsets, ...spiritOfMathOffsets, ...singaporeMathOffsets, ...britishColumbiaOffsets, ...englandOffsets, ...commonCoreOffsets],
   outcomes: universityOutcomes,
 });
